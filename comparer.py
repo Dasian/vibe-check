@@ -24,11 +24,24 @@ class Comparer():
 		""" Have the user rank a list or concepts then mergesort """
 		return
 
+	def get_median(self, arr, left, right):
+		""" Returns the median index given left and right index """ 
+		# median of median's technique
+		# 3 comparisons, puts the median of the 3 at the returned index
+		# change the comparator from > to < if sorting least to most
+		mid = (left + right) // 2
+		if arr[mid] > arr[left]:
+			arr[mid], arr[left] = arr[left], arr[mid]
+		if arr[right] > arr[left]:
+			arr[right], arr[left] = arr[left], arr[right]
+		if arr[right] > arr[mid]:
+			arr[right], arr[mid] = arr[mid], arr[right]	
+		return mid
+
 	def quick_sort(self, arr, left, right):
 		""" Have the user compare every concept to a pivot, divide set,
 			repeat for all sets until completely ordered.
 		"""
-		# TODO implement
 		# might want to restrict to small n or at least have some type
 		# of estimated time function to warn the user
 		if left < right:
@@ -37,18 +50,75 @@ class Comparer():
 			self.quick_sort(arr, left, pivot_index-1)	# sort left
 			self.quick_sort(arr, pivot_index+1, right)	# sort right
 
-	def quick_partial_sort(self, arr, rank_size):
+	def partial_quick_sort(self, arr, k):
 		""" Have the user compare every concept to a pivot, divide set,
 			repeat for all sets until completely ordered.
 			rank_size is the max list size the user needs to order
 		"""
-		# run quick select on the first rank_size
+		# track the indices that are alread in their final positions
+		# should be ordered
+		true_indices = [0, len(arr)-1]
 
-		# run quick_select again on the remaining ones
-		# the true indices of the previous pivots should
-		# be used to reduce num_comparisons  
+		# not sure why, but there's also some infinite loops sometimes
 
-		return
+		# check if all sets are <= k
+		# sorts from greatest to smallest
+		i = 1
+		while i < len(true_indices) and len(true_indices) != len(arr):
+			left = true_indices[i-1]
+			right = true_indices[i]
+			if right - left > k and right != left:
+				pivot_before = self.get_median(arr, left, right)
+				pivot_index	= self.partition(arr, left, right-1, pivot_before)
+				if pivot_index not in true_indices:
+					true_indices.insert(i, pivot_index)
+				elif arr[pivot_before] == arr[pivot_index]:
+					true_indices.insert(i, pivot_before)	
+			else:
+				i += 1
+		return true_indices
+
+	def partial_insertion_sort(self, arr, k):
+		""" Finds the top k elements in an array
+			Essentially insertion sort but inserts a new
+			element to the sorted portion using binary search
+		"""
+		# TODO replace top with an in place implementation?
+		i = 0
+		top = []	# top k elements, sorted from best to worst
+		while i < len(arr):
+			if len(top) < k:
+				index = self.binary_search(top, arr[i], 0, len(top)-1)
+				top.insert(index, arr[i])
+			elif arr[i] > top[-1] or arr[i] > top[0]:
+				index = self.binary_search(top, arr[i], 0, len(top)-1)
+				top.insert(index, arr[i])
+				top.pop(0)
+			i += 1	
+		return top
+
+	def binary_search(self, arr, val, start, end):
+		""" Finds a value's index in a sorted array with binary search
+			Helper for binary insertion sort to find insertion index
+			in the sorted portion
+		""" 
+		if start == end:
+			if arr[start] > val:
+				self.nc += 1
+				return start
+			else:
+				return start+1
+		if start > end:
+			return start
+		mid = (start+end)//2
+		if arr[mid] < val:
+			self.nc += 1
+			return self.binary_search(arr, val, mid+1, end)
+		elif arr[mid] > val:
+			self.nc += 1
+			return self.binary_search(arr, val, start, mid-1)
+		else:
+			return mid
 
 	def quick_select(self, arr, left, right, k):
 		"""	Return the best k+1 elements in a set (unsorted)
@@ -59,16 +129,12 @@ class Comparer():
 
 			num_medians with perfect median is floor(log(n-k-1))?
 		"""
-		# one element in list	
 		if left == right:	
 			return arr[0:k+1]
-		# "median" selection or middle of list
-		# probably use best of 3 medians
-		pivot_index = math.floor((left + right)/2)
+		pivot_index = self.get_median(arr, left, right) 
 		pivot_index = self.partition(arr, left, right, pivot_index)
 		# pivot is in final sorted position
 		if k == pivot_index:
-			# first k, best or worst?
 			return arr[0:k+1]
 		elif k < pivot_index:
 			return self.quick_select(arr, left, pivot_index-1, k)
@@ -87,7 +153,6 @@ class Comparer():
 		arr[pivot_index], arr[right] = arr[right], arr[pivot_index]
 		store = left
 		for i in range(left, right):
-			self.nc += 1
 			if arr[i] > pivot:	# change for largest/smallest value here
 				arr[store], arr[i] = arr[i], arr[store]
 				store += 1
