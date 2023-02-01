@@ -7,19 +7,9 @@
 	personal ranking
 """
 
-def rank(arr):
-	""" Asks the user to rank a list of concepts 
-		Returns the ordered list of concepts from best -> worst
-	"""
-	return arr
-
-def merge_sort(arr):
-	""" Have the user rank a list or concepts then mergesort """
-	return
-
 def get_median(arr, left, right):
 	""" Returns the median index given left and right index """ 
-	# median of median's technique
+	# median of 3
 	# 3 comparisons, puts the median of the 3 at the returned index
 	# change the comparator from > to < if sorting least to most
 	mid = (left + right) // 2
@@ -47,12 +37,11 @@ def partial_quick_sort(arr, k):
 	""" Have the user compare every concept to a pivot, divide set,
 		repeat for all sets until completely ordered.
 		rank_size is the max list size the user needs to order
+		O(n + klogk)
 	"""
 	# track the indices that are alread in their final positions
 	# should be ordered
 	true_indices = [0, len(arr)-1]
-
-	# not sure why, but there's also some infinite loops sometimes
 
 	# check if all sets are <= k
 	# sorts from greatest to smallest
@@ -70,6 +59,45 @@ def partial_quick_sort(arr, k):
 		else:
 			i += 1
 	return true_indices
+
+def quick_select(arr, left, right, k):
+	"""	Return the best k elements in a set (unsorted)
+		(currently set to the largest elements')
+		Basically O(n)
+	"""
+	if left == right:	
+		return arr[0:k]
+	pivot_index = get_median(arr, left, right) 
+	pivot_index = partition(arr, left, right, pivot_index)
+	# pivot is in final sorted position
+	if k == pivot_index:
+		return arr[0:k]
+	elif k < pivot_index:
+		return quick_select(arr, left, pivot_index-1, k)
+	else:
+		return quick_select(arr, pivot_index+1, right, k)
+
+def partition(arr, left, right, pivot_index):
+	""" Partition helper for quick_* funcs
+		Returns the "true" index of the selected pivot
+		
+		true index means that the pivot element is in its
+		final sorted position in the list
+	"""
+	pivot = arr[pivot_index]
+	# move pivot to end
+	arr[pivot_index], arr[right] = arr[right], arr[pivot_index]
+	store = left
+	for i in range(left, right):
+		if arr[i] > pivot:	# change for largest/smallest value here
+			arr[store], arr[i] = arr[i], arr[store]
+			store += 1
+	arr[right], arr[store] = arr[store], arr[right]
+	# true index for the pivot has been determined 
+	# TODO
+	# cache results (if not being done already)
+	# and give the user some statistics on their progress
+	return store
 
 def partial_insertion_sort(arr, k):
 	""" Finds the top k elements in an array
@@ -110,43 +138,15 @@ def binary_search(arr, val, start, end):
 	else:
 		return mid
 
-def quick_select(arr, left, right, k):
-	"""	Return the best k elements in a set (unsorted)
-		(currently set to the largest elements')
+def rank(arr):
+	""" Asks the user to rank a list of concepts 
+		Returns the ordered list of concepts from best -> worst
 	"""
-	if left == right:	
-		return arr[0:k]
-	pivot_index = get_median(arr, left, right) 
-	pivot_index = partition(arr, left, right, pivot_index)
-	# pivot is in final sorted position
-	if k == pivot_index:
-		return arr[0:k]
-	elif k < pivot_index:
-		return quick_select(arr, left, pivot_index-1, k)
-	else:
-		return quick_select(arr, pivot_index+1, right, k)
+	return arr
 
-def partition(arr, left, right, pivot_index):
-	""" Partition helper for quick_* funcs
-		Returns the "true" index of the selected pivot
-		
-		true index means that the pivot element is in its
-		final sorted position in the list
-	"""
-	pivot = arr[pivot_index]
-	# move pivot to end
-	arr[pivot_index], arr[right] = arr[right], arr[pivot_index]
-	store = left
-	for i in range(left, right):
-		if arr[i] > pivot:	# change for largest/smallest value here
-			arr[store], arr[i] = arr[i], arr[store]
-			store += 1
-	arr[right], arr[store] = arr[store], arr[right]
-	# true index for the pivot has been determined 
-	# TODO
-	# cache results (if not being done already)
-	# and give the user some statistics on their progress
-	return store
+def merge_sort(arr):
+	""" Have the user rank a list or concepts then mergesort """
+	return
 
 def bucket_sort(arr):
 	""" Have the user sort each concept into a 'bucket'
