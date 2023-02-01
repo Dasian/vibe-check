@@ -111,21 +111,16 @@ def binary_search(arr, val, start, end):
 		return mid
 
 def quick_select(arr, left, right, k):
-	"""	Return the best k+1 elements in a set (unsorted)
+	"""	Return the best k elements in a set (unsorted)
 		(currently set to the largest elements')
-
-		128 elements with perfect median and best k=1 takes 254
-		comparisons or avg case 2(n-k)
-
-		num_medians with perfect median is floor(log(n-k-1))?
 	"""
 	if left == right:	
-		return arr[0:k+1]
+		return arr[0:k]
 	pivot_index = get_median(arr, left, right) 
 	pivot_index = partition(arr, left, right, pivot_index)
 	# pivot is in final sorted position
 	if k == pivot_index:
-		return arr[0:k+1]
+		return arr[0:k]
 	elif k < pivot_index:
 		return quick_select(arr, left, pivot_index-1, k)
 	else:
