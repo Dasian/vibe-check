@@ -10,7 +10,8 @@ import math
 class Comparer():
 	def __init__(self):
 		self.rankings = []	# not sure yet, an ordered ranking of concepts?
-		self.nc = 0
+		# verified with item.py obj comparison operators
+		self.nc = 0	# num_comparisons used for tracking
 
 	def rank(self, arr):
 		""" Asks the user to rank a list of concepts 
@@ -23,14 +24,30 @@ class Comparer():
 		""" Have the user rank a list or concepts then mergesort """
 		return
 
-	def quick_sort(self, arr, rank_size):
+	def quick_sort(self, arr, left, right):
 		""" Have the user compare every concept to a pivot, divide set,
 			repeat for all sets until completely ordered.
-			rank_size is the max list size the user needs to order
 		"""
 		# TODO implement
 		# might want to restrict to small n or at least have some type
 		# of estimated time function to warn the user
+		if left < right:
+			pivot_index = math.floor((left+right)/2)
+			pivot_index = self.partition(arr, left, right, pivot_index)
+			self.quick_sort(arr, left, pivot_index-1)	# sort left
+			self.quick_sort(arr, pivot_index+1, right)	# sort right
+
+	def quick_partial_sort(self, arr, rank_size):
+		""" Have the user compare every concept to a pivot, divide set,
+			repeat for all sets until completely ordered.
+			rank_size is the max list size the user needs to order
+		"""
+		# run quick select on the first rank_size
+
+		# run quick_select again on the remaining ones
+		# the true indices of the previous pivots should
+		# be used to reduce num_comparisons  
+
 		return
 
 	def quick_select(self, arr, left, right, k):
@@ -44,14 +61,13 @@ class Comparer():
 		"""
 		# one element in list	
 		if left == right:	
-			print('num_comparisons', self.nc)
 			return arr[0:k+1]
 		# "median" selection or middle of list
+		# probably use best of 3 medians
 		pivot_index = math.floor((left + right)/2)
 		pivot_index = self.partition(arr, left, right, pivot_index)
 		# pivot is in final sorted position
 		if k == pivot_index:
-			print('num_comparisons', self.nc)
 			# first k, best or worst?
 			return arr[0:k+1]
 		elif k < pivot_index:
