@@ -24,5 +24,18 @@ class Item():
 		self.children = []
 		self.rating = -1
 
+		# for comparing ints in initial benchmarks
+		self.value = 0
+		self.nc = 0 # num comparisons
+
 	# TODO implement object comparisons
 	
+	def __lt__(self, other):
+		if self.type == 'int':
+			self.nc += 1
+			return self.value < other.value
+
+	def __eq__(self, other):
+		if self.type == 'int':
+			self.nc += 1
+			return self.value == other.value
