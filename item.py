@@ -22,20 +22,73 @@ class Item():
 		# children are "smaller" concepts
 		self.depth = 0	# what level of the tree are you
 		self.children = []
+		self.parent = None
 		self.rating = -1
+		self.gt = {}	# keeps track the result of self > key, avoids dup cmp
 
 		# for comparing ints in initial benchmarks
 		self.value = 0
 		self.nc = 0 # num comparisons
 
-	# TODO implement object comparisons
+	def get_child(self, target):
+		""" Returns child object with the target name """
+		for c in self.children:
+			if c.name == target:
+				return c
+		return None
 	
-	def __lt__(self, other):
+	# TODO get_children based on depth, name, type
+	def get_children(self, depth):
+		""" Returns list of children at a given depth """
+		children = []
+		if self.depth == depth:
+			return self.children
+		elif self.depth < depth:
+			for c in self.children:
+				children += c.get_children(depth)
+		else:
+			return
+		return children
+
+	def print_tree(self):
+		""" Prints this Item as a tree """
+		print(self.depth * '---' + 'type: ' + self.type + ' name: ' + self.name)
+		for child in self.children:
+			child.print_tree()
+		return
+
+	def __str__(self):
+		s = 'Item ' + self.name + ' ' + self.type
+		return s
+
+	# TODO keep track of unique comparisons 
+	def __gt__(self, other):
 		if self.type == 'int':
-			self.nc += 1
-			return self.value < other.value
+			if other.value not in self.gt.keys():
+				self.nc += 1
+				self.gt[other.value] = self.value > other.value
+				other.gt[self.value] = other.value > self.value
+			return self.gt[other.value]
+		elif other.name in self.gt.keys():
+			return self.gt[other.name]
+		else:
+			# get user input to decide
+			inp = input('1: ' + self.name + ' or 2: ' + other.name+'\n> ')
+			if inp == '1':
+				self.gt[other.name] = True
+				other.gt[self.name] = False
+				return True
+			elif inp == '2':
+				self.gt[other.name] = False
+				other.gt[self.name] = True
+				return False
+			else:
+				print('invalid choice')
+				return self.__gt__(other)
 
 	def __eq__(self, other):
 		if self.type == 'int':
-			self.nc += 1
 			return self.value == other.value
+		else:
+			# only equal if name and type? not sure if input needed
+			return self.name == other.name and self.type == other.type
