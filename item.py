@@ -25,6 +25,8 @@ class Item():
 		self.parent = None
 		self.rating = -1
 		self.gt = {}	# keeps track the result of self > key, avoids dup cmp
+		self.window = None 	# gui window
+		self.is_gui = False
 
 		# for comparing ints in initial benchmarks
 		self.value = 0
@@ -71,8 +73,17 @@ class Item():
 			return self.gt[other.value]
 		elif other.name in self.gt.keys():
 			return self.gt[other.name]
+		elif self.name == other.name:
+			return False
+		elif is_gui:
+			# TODO this, it's going to be threaded now
+			# check if window curr state is -Comparer-
+			# window will be in a different process
+			# need to send interproc communication smh
+			window['-Opt1-'].update(self.name)
+			window['-Opt2-'].update(other.name)
 		else:
-			# get user input to decide
+			# get user input from console
 			inp = input('1: ' + self.name + ' or 2: ' + other.name+'\n> ')
 			if inp == '1':
 				self.gt[other.name] = True
@@ -92,3 +103,52 @@ class Item():
 		else:
 			# only equal if name and type? not sure if input needed
 			return self.name == other.name and self.type == other.type
+
+def generate_fs_tree(inp_path):
+	""" Generates an item tree where the root is the
+		user input path and the children are folders
+		and files
+		
+		Returns the root of the tree
+	"""
+	split_inp = inp_path.split('/')
+	root_item = Item()
+	root_item.name = 'root'
+	root_item.type = 'root'
+	root_item.depth = 0
+	max_depth = 0
+	parent = None
+
+	# fill item tree from filesystem
+	for root, dirs, files in os.walk(inp_path):
+		curr_path = root.split(os.sep)[len(split_inp):]
+		
+		# find parent
+		parent = root_item
+		for i in range(0, len(curr_path)):
+			parent = parent.get_child(curr_path[i])
+
+		# create children
+		children = dirs + files
+		depth = len(curr_path) + 1
+		if depth > max_depth:
+			max_depth = depth
+		for c in children:
+			i = Item()
+			i.is_gui = True
+			i.name = c
+			i.depth = depth
+			i.parent = parent
+			parent.children.append(i)
+
+	# group files at a depth
+	for i in range(max_depth):
+		children = root_item.get_children(i)
+		for c in children:
+			print(c.name)
+		# inp = input('Name for this group?\n>')
+		# for c in children:
+			# c.type = inp
+		print()
+
+	return root_item
