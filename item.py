@@ -13,6 +13,8 @@
 	Two concepts don't need to be of the same type to be compared.
 	I think TPAB is better than Macklemore.
 """
+from settings import *
+import os
 
 class Item():
 	def __init__(self):
@@ -23,10 +25,7 @@ class Item():
 		self.depth = 0	# what level of the tree are you
 		self.children = []
 		self.parent = None
-		self.rating = -1
 		self.gt = {}	# keeps track the result of self > key, avoids dup cmp
-		self.window = None 	# gui window
-		self.is_gui = False
 
 		# for comparing ints in initial benchmarks
 		self.value = 0
@@ -65,6 +64,8 @@ class Item():
 
 	# TODO keep track of unique comparisons 
 	def __gt__(self, other):
+		global is_gui
+		print('is_gui', is_gui)
 		if self.type == 'int':
 			if other.value not in self.gt.keys():
 				self.nc += 1
@@ -76,12 +77,25 @@ class Item():
 		elif self.name == other.name:
 			return False
 		elif is_gui:
-			# TODO this, it's going to be threaded now
-			# check if window curr state is -Comparer-
-			# window will be in a different process
-			# need to send interproc communication smh
-			window['-Opt1-'].update(self.name)
-			window['-Opt2-'].update(other.name)
+			# get user input from gui
+			# send options to gui
+			gui_read_queue.put(self.name)
+			gui_read_queue.put(other.name)	
+			# needs to wait?
+			# get user choice
+			choice = gui_write_queue.get()
+			if choice == 'A':
+				print(self.name +' was chosen')
+				print()
+				self.gt[other.name] = True
+				other.gt[self.name] = False
+				return True
+			elif choice == 'B':
+				print(other.name +' was chosen')
+				print()
+				self.gt[other.name] = False
+				other.gt[self.name] = True
+				return False
 		else:
 			# get user input from console
 			inp = input('1: ' + self.name + ' or 2: ' + other.name+'\n> ')
