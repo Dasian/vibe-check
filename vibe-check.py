@@ -1,19 +1,6 @@
 """
 	Relatively rank a group of objects based on vibes
 """
-
-# TODO handle finished sorting
-# add partition states
-# implement saving and loading
-# add user sorting choices and approx runtime
-# implement spotify and plex logins
-# improve list customization
-# implement settings
-# improve gui layout
-# add console mode
-# clean up code
-# ship
-
 from sort import *
 from item import *
 from benchmark import *
@@ -23,20 +10,22 @@ import threading as th
 
 def main():
 	# gui needs threads, console doesn't
-	gui_worker()
+	gui()
 
 def algo_worker(sort_func, sort_args):
 	# run algo, communication now in item cmp methods
 	sort_func(*sort_args)
 	# finished, send output to gui?
-	vals = [x.name for x in sort_args[0]]
-	print('finished sorting')
+	# send two none's to signal lmao
+	gui_read_queue.put(None)
+	gui_read_queue.put(None)
+	vals = [[x.name] for x in sort_args[0]]
 	print(vals)
+	gui_read_queue.put(vals)
 	# or send curr state after every comparison
 	return
 
-def gui_worker():
-	print('gui_worker starting')
+def gui():
 	sg.theme('Dark Grey 12')
 	font = 'Courier 64'
 	button_font = 'Courier 32'
@@ -86,9 +75,14 @@ def gui_worker():
 	]
 	comparer_layout = [
 		[sg.Push(), sg.Text('Vibe Checker', font=font), sg.Push()],
-		[],
-		[sg.Column(opt1_layout), sg.Push(), sg.Column(opt2_layout)],
+		[sg.Column(opt1_layout), sg.Push(), sg.Text('vs', font=font), sg.Push(), sg.Column(opt2_layout)],
 		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()]
+	]
+
+	results_layout = [
+		[sg.Push(), sg.Text('Results', font=font), sg.Push()],
+		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()],
+		[sg.Push(), sg.Table([['Ranking']], auto_size_columns=True, key='-Results Table-', font='Courier 16', justification='left'), sg.Push()]
 	]
 
 	# switches window layout
@@ -97,16 +91,19 @@ def gui_worker():
 		sg.Column(new_layout, visible=False, key='-New-'), 
 		sg.Column(load_layout, visible=False, key='-Load-'), 
 		sg.Column(settings_layout, visible=False, key='-Settings-'),
-		sg.Column(comparer_layout, visible=False, key='-Comparer-')
+		sg.Column(comparer_layout, visible=False, key='-Comparer-'),
+		sg.Column(results_layout, visible=False, key='-Results-')
 		]
 	]
 
 	window = sg.Window('vibes', master_layout, resizable=True, finalize=True)
 
 	curr_layout = '-Home-'
+	valid_choices = ['A', 'B']
 	sort_func = None
 	root_item = None
 	algo_thread = None
+	done_sorting = False
 	# Event loop runs while gui window is open
 	while True:
 		event, values = window.read()
@@ -140,10 +137,9 @@ def gui_worker():
 			curr_layout = '-Comparer-'
 			# fill Item tree
 			root_item = generate_fs_tree(values['Browse'])
-			root_item.print_tree()
 
 			# TEMP BEHAVIOR, run quicksort
-			arr = root_item.get_children(4)
+			arr = root_item.get_children(3)
 			sort_algo = quick_sort
 			sort_args = [arr, 0, len(arr)-1]
 			algo_args = [sort_algo, sort_args]
@@ -158,15 +154,23 @@ def gui_worker():
 		# get algo info somewhere?
 
 		# comparison choice
-		# wait for algo worker to say it's ok?
-		elif curr_layout == '-Comparer-' and (event == 'A' or event == 'B'):
-			# send choice to algo worker
+		elif curr_layout == '-Comparer-' and event in valid_choices and not done_sorting:
+			# send choice to algo thread
 			gui_write_queue.put(event)
-			# wait for next option to be ready?
+			# wait for next option to be ready
 			opt1 = gui_read_queue.get()
 			opt2 = gui_read_queue.get()
-			window['-Opt1-'].update(opt1)
-			window['-Opt2-'].update(opt2)
+			if opt1 != None and opt2 != None:
+				window['-Opt1-'].update(opt1)
+				window['-Opt2-'].update(opt2)
+			else:
+				# sorting is finished
+				done_sorting = True
+				results = gui_read_queue.get()
+				curr_layout = '-Results-'
+				window['-Comparer-'].update(visible=False)
+				window[curr_layout].update(visible=True)
+				window['-Results Table-'].update(results)
 
 	window.close()
 
