@@ -64,8 +64,6 @@ class Item():
 
 	# TODO keep track of unique comparisons 
 	def __gt__(self, other):
-		global is_gui
-		print('is_gui', is_gui)
 		if self.type == 'int':
 			if other.value not in self.gt.keys():
 				self.nc += 1
@@ -85,14 +83,10 @@ class Item():
 			# get user choice
 			choice = gui_write_queue.get()
 			if choice == 'A':
-				print(self.name +' was chosen')
-				print()
 				self.gt[other.name] = True
 				other.gt[self.name] = False
 				return True
 			elif choice == 'B':
-				print(other.name +' was chosen')
-				print()
 				self.gt[other.name] = False
 				other.gt[self.name] = True
 				return False
@@ -158,11 +152,8 @@ def generate_fs_tree(inp_path):
 	# group files at a depth
 	for i in range(max_depth):
 		children = root_item.get_children(i)
-		for c in children:
-			print(c.name)
 		# inp = input('Name for this group?\n>')
 		# for c in children:
 			# c.type = inp
-		print()
 
 	return root_item

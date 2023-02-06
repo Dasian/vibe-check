@@ -21,61 +21,57 @@ def get_median(arr, left, right):
 		arr[right], arr[mid] = arr[mid], arr[right]	
 	return mid
 
-def quick_sort(arr, left, right):
+# overload this function with all quick_* variations?
+def partial_quick_sort(arr, k, true_indices=None, i=1, in_partition=False, quick_select=False, partition_args=[]):
 	""" Have the user compare every concept to a pivot, divide set,
 		repeat for all sets until completely ordered.
-	"""
-	# might want to restrict to small n or at least have some type
-	# of estimated time function to warn the user
-	if left < right:
-		pivot_index = get_median(arr, left, right)
-		pivot_index = partition(arr, left, right, pivot_index)
-		quick_sort(arr, left, pivot_index-1)	# sort left
-		quick_sort(arr, pivot_index+1, right)	# sort right
+		all unordered sets will be of size <= k.
+		
+		Every while loop iteration can save and reload the curr state
+		of this function's arguments in order to work on large sets
+		over a long period of time.
 
-def partial_quick_sort(arr, k):
-	""" Have the user compare every concept to a pivot, divide set,
-		repeat for all sets until completely ordered.
-		rank_size is the max list size the user needs to order
+		quicksort: k=1
+		quickselect: quickselect boolean
+		partial_qs: normal behavior
+
 		O(n + klogk)
+		Returns the set of true indices
 	"""
 	# track the indices that are alread in their final positions
-	# should be ordered
-	true_indices = [0, len(arr)-1]
+	if true_indices == None:
+		true_indices = [0, len(arr)-1]
+
+	# reload save point from partition
+	if in_partition:
+		pivot_index = partition(*partition_args)	
+		true_indices.insert(i, pivot_index)
 
 	# check if all sets are <= k
 	# sorts from greatest to smallest
-	i = 1
 	while i < len(true_indices) and len(true_indices) != len(arr):
+		# TODO save true_indices and array progress
+		# communicate with save thread?
+		# save arr, k, ti, i, ip, pa (this funcs args)
 		left = true_indices[i-1]
 		right = true_indices[i]
-		if right - left > k and right != left:
+		if right - left > k:
+			if left == 0 and right != len(arr)-1:
+				right -= 1
+			elif right == len(arr)-1 and left != 0:
+				left += 1
+			elif left != 0 and right != len(arr)-1:
+				left += 1
+				right -= 1
 			pivot_before = get_median(arr, left, right)
-			pivot_index	= partition(arr, left, right-1, pivot_before)
+			pivot_index	= partition(arr, left, right, pivot_before)
 			if pivot_index not in true_indices:
 				true_indices.insert(i, pivot_index)
-			elif arr[pivot_before] == arr[pivot_index]:
-				true_indices.insert(i, pivot_before)	
+			elif right - left <= 2:
+				true_indices.insert(i, pivot_index+1)
 		else:
 			i += 1
 	return true_indices
-
-def quick_select(arr, left, right, k):
-	"""	Return the best k elements in a set (unsorted)
-		(currently set to the largest elements')
-		Basically O(n)
-	"""
-	if left == right:	
-		return arr[0:k]
-	pivot_index = get_median(arr, left, right) 
-	pivot_index = partition(arr, left, right, pivot_index)
-	# pivot is in final sorted position
-	if k == pivot_index:
-		return arr[0:k]
-	elif k < pivot_index:
-		return quick_select(arr, left, pivot_index-1, k)
-	else:
-		return quick_select(arr, pivot_index+1, right, k)
 
 def partition(arr, left, right, pivot_index):
 	""" Partition helper for quick_* funcs
@@ -94,10 +90,37 @@ def partition(arr, left, right, pivot_index):
 			store += 1
 	arr[right], arr[store] = arr[store], arr[right]
 	# true index for the pivot has been determined 
-	# TODO
-	# cache results (if not being done already)
-	# and give the user some statistics on their progress
+	# TODO save arr, left, right, pi, i, store
 	return store
+
+def quick_sort(arr, left, right):
+	""" Have the user compare every concept to a pivot, divide set,
+		repeat for all sets until completely ordered.
+	"""
+	# might want to restrict to small n or at least have some type
+	# of estimated time function to warn the user
+	if left < right:
+		pivot_index = get_median(arr, left, right)
+		pivot_index = partition(arr, left, right, pivot_index)
+		quick_sort(arr, left, pivot_index-1)	# sort left
+		quick_sort(arr, pivot_index+1, right)	# sort right
+
+def quick_select(arr, left, right, k):
+	"""	Return the best k elements in a set (unsorted)
+		(currently set to the largest elements')
+		Basically O(n)
+	"""
+	if left == right:	
+		return arr[0:k]
+	pivot_index = get_median(arr, left, right) 
+	pivot_index = partition(arr, left, right, pivot_index)
+	# pivot is in final sorted position
+	if k == pivot_index:
+		return arr[0:k]
+	elif k < pivot_index:
+		return quick_select(arr, left, pivot_index-1, k)
+	else:
+		return quick_select(arr, pivot_index+1, right, k)
 
 def partial_insertion_sort(arr, k):
 	""" Finds the top k elements in an array
@@ -154,4 +177,9 @@ def bucket_sort(arr):
 
 		Bucket examples: Dislike, Neutral, Like; [0-5]
 	"""
+	return
+
+def merge_insertion_sort(arr):
+	""" has the fewest num of comparisons in theory """
+	# https://github.com/TheAlgorithms/Python/blob/master/sorts/merge_insertion_sort.py
 	return
