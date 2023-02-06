@@ -4,6 +4,7 @@
 	sorting implementations
 """
 from item import *
+from sort import *
 import random
 
 def generate_sample(x, n, rng):
@@ -108,6 +109,15 @@ def is_partially_sorted(arr, k, pivots):
 	# every subset length should be <= k
 	for i in range(1, len(pivots)-1):
 		if pivots[i] - pivots[i-1] > k:
+			print('invalid pivot subset')
+			print('k=', k)
+			print('i, i-1', i, i-1)
+			print('piv[i], piv[i-1]', pivots[i], pivots[i-1])
+			print('pivots:')
+			print(pivots)
+			vals = [x.value for x in arr]
+			print('vals:')
+			print(vals)
 			return False
 
 	# all elements in the first subset should be
@@ -116,15 +126,20 @@ def is_partially_sorted(arr, k, pivots):
 		set1 = arr[pivots[i-2]:pivots[i-1]]
 		set2 = arr[pivots[i-1]:pivots[i]]
 		if not min(set1) > max(set2):
+			vals = [x.value for x in arr]
+			print('invalid min/max')
+			print('min i and val', arr.index(min(set1)), min(set1).value)
+			print('max i and val', arr.index(max(set2)), max(set2).value)
+			print('pivots')
+			print(pivots)
+			print('arr:')
+			print(vals)
 			return False
 
 	return True
 
-def benchmark():
+def benchmark(x=1000, n=600, k=50):
 	""" Benchmark the performance of every implemented sorting algo """
-	x = 1000
-	n = 600
-	k = 50		# smaller k, less comparisons for some reason??
 	rng = x*n	# range of values for testing
 
 	# test info
@@ -175,3 +190,5 @@ def benchmark():
 	print()
 
 	# ford-johnson min comparison test
+
+	# TODO test save/load sorts
