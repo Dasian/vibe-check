@@ -13,7 +13,7 @@
 	Two concepts don't need to be of the same type to be compared.
 	I think TPAB is better than Macklemore.
 """
-from settings import *
+import settings
 import os
 
 class Item():
@@ -71,17 +71,19 @@ class Item():
 				other.gt[self.value] = other.value > self.value
 			return self.gt[other.value]
 		elif other.name in self.gt.keys():
+			settings.new_choice = False
 			return self.gt[other.name]
 		elif self.name == other.name:
+			settings.new_choice = False
 			return False
-		elif is_gui:
+		elif settings.is_gui:
 			# get user input from gui
+			settings.new_choice = True
 			# send options to gui
-			gui_read_queue.put(self.name)
-			gui_read_queue.put(other.name)	
-			# needs to wait?
+			settings.gui_read_queue.put(self.name)
+			settings.gui_read_queue.put(other.name)	
 			# get user choice
-			choice = gui_write_queue.get()
+			choice = settings.gui_write_queue.get()
 			if choice == 'A':
 				self.gt[other.name] = True
 				other.gt[self.name] = False

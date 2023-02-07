@@ -4,24 +4,28 @@
 from sort import *
 from item import *
 from benchmark import *
-from settings import *
+import settings
 import PySimpleGUI as sg
 import threading as th
+import pickle
+import os
 
 def main():
 	# gui needs threads, console doesn't
 	gui()
+	# partial_quick_sort test
+	# benchmark()
 
 def algo_worker(sort_func, sort_args):
 	# run algo, communication now in item cmp methods
 	sort_func(*sort_args)
 	# finished, send output to gui?
 	# send two none's to signal lmao
-	gui_read_queue.put(None)
-	gui_read_queue.put(None)
+	settings.gui_read_queue.put(None)
+	settings.gui_read_queue.put(None)
 	vals = [[x.name] for x in sort_args[0]]
 	print(vals)
-	gui_read_queue.put(vals)
+	settings.gui_read_queue.put(vals)
 	# or send curr state after every comparison
 	return
 
@@ -76,7 +80,7 @@ def gui():
 	comparer_layout = [
 		[sg.Push(), sg.Text('Vibe Checker', font=font), sg.Push()],
 		[sg.Column(opt1_layout), sg.Push(), sg.Text('vs', font=font), sg.Push(), sg.Column(opt2_layout)],
-		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()]
+		[sg.Push(), sg.Button('Home', font=button_font), sg.Button('Save', font=button_font), sg.Push()]
 	]
 
 	results_layout = [
@@ -104,24 +108,25 @@ def gui():
 	root_item = None
 	algo_thread = None
 	done_sorting = False
+	hist_len = 1
+	history = [None for x in range(hist_len)]
+	save_path = 'saves/save.pkl'
 	# Event loop runs while gui window is open
 	while True:
 		event, values = window.read()
 		print((event, values))
 		print()
 
-		if event == sg.WIN_CLOSED or event == 'Quit':
-			# maybe a save prompt?
-			if algo_thread != None:
-				algo_thread.join()
-			break
-
 		# home menu navigation
-		elif curr_layout == '-Home-':
+		if curr_layout == '-Home-' and event != 'Quit':
 			new_layout = '-' + event + '-'
 			window[f'-Home-'].update(visible=False)
 			window[new_layout].update(visible=True)
 			curr_layout = new_layout
+
+		if event == sg.WIN_CLOSED or event == 'Quit':
+			# maybe a save prompt?
+			break
 
 		# return home
 		elif event.startswith('Home'):
@@ -140,39 +145,96 @@ def gui():
 
 			# TEMP BEHAVIOR, run quicksort
 			arr = root_item.get_children(3)
-			sort_algo = quick_sort
-			sort_args = [arr, 0, len(arr)-1]
+			sort_algo = partial_quick_sort
+			sort_args = [arr, 1]
 			algo_args = [sort_algo, sort_args]
 			algo_thread = th.Thread(target=algo_worker, args=algo_args, daemon=True)
 			algo_thread.start()	
 			# wait for next options to update window
-			opt1 = gui_read_queue.get()
-			opt2 = gui_read_queue.get()
+			opt1 = settings.gui_read_queue.get()
+			opt2 = settings.gui_read_queue.get()
 			window['-Opt1-'].update(opt1)
 			window['-Opt2-'].update(opt2)
 
-		# get algo info somewhere?
+		# TODO get sorts args from user
 
 		# comparison choice
 		elif curr_layout == '-Comparer-' and event in valid_choices and not done_sorting:
 			# send choice to algo thread
-			gui_write_queue.put(event)
+			settings.gui_write_queue.put(event)
 			# wait for next option to be ready
-			opt1 = gui_read_queue.get()
-			opt2 = gui_read_queue.get()
+			opt1 = settings.gui_read_queue.get()
+			opt2 = settings.gui_read_queue.get()
 			if opt1 != None and opt2 != None:
+				# display next options
 				window['-Opt1-'].update(opt1)
 				window['-Opt2-'].update(opt2)
+				# save sort progress
+				history[0] = settings.save_queue.get()
+				print('new save received')
+				print(history[0])
 			else:
 				# sorting is finished
 				done_sorting = True
-				results = gui_read_queue.get()
+				results = settings.gui_read_queue.get()
 				curr_layout = '-Results-'
 				window['-Comparer-'].update(visible=False)
 				window[curr_layout].update(visible=True)
 				window['-Results Table-'].update(results)
 
+		# TODO save to file and implement history
+		elif event.startswith('Save') and history[0] != None:
+			print('Saving...')
+			print('history[0]:', history[0])
+			# write save to file, prompt for name?
+			f = open(save_path, 'wb')
+			pickle.dump(history[0], f)
+			f.close()
+
+		# TODO load from file
+		elif event == 'Load':
+			print('Loading...')
+			f = open(save_path, 'rb')
+			save = pickle.load(f)
+			f.close()
+			print(save)
+			# TODO terminate thread if it exists
+			algo_thread = load_save(save)
+			algo_thread.start()
+	
+			# wait for next options to update window
+			window[curr_layout].update(visible=False)
+			window[f'-Comparer-'].update(visible=True)
+			curr_layout = '-Comparer-'
+			opt1 = settings.gui_read_queue.get()
+			opt2 = settings.gui_read_queue.get()
+			window['-Opt1-'].update(opt1)
+			window['-Opt2-'].update(opt2)
+
 	window.close()
+
+def load_save(save):
+	""" 
+		Loads a save from unpickled save file 
+		Returns a thread obj to be started
+	"""
+	# unpack data
+	k = save['k']
+	arr = save['arr']
+	true_indices = save['true_indices']
+	i = save['i']
+	in_partition = save['in_partition']
+	in_median = save['in_median']
+	quick_select = save['quick_select']
+	partition_args = save['partition_args']
+	partition_args.insert(0, arr)
+
+	# load thread
+	sort_algo = partial_quick_sort
+	sort_args = [arr, k, true_indices, i, in_partition, in_median, quick_select, partition_args]
+	algo_args = [sort_algo, sort_args]
+	algo_thread = th.Thread(target=algo_worker, args=algo_args, daemon=True)
+	return algo_thread	
 
 if __name__ == "__main__":
 	main()
