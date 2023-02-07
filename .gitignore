@@ -132,5 +132,6 @@ dmypy.json
 *.swp
 *.swo
 
-# test file traversal dir
+# local info
 test/
+saves/
