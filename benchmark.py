@@ -177,8 +177,9 @@ def benchmark(x=1000, n=600, k=50):
 	# ford-johnson min comparison test
 
 def load_test(x=1, n=600, k=10):
+	""" Test loading validity on partial quicksort """
+	# TODO test quickselect
 	# it will take a while if n is large
-	# loadable quicksort
 	rng = x*n
 	
 	# generate and pass random array
@@ -212,7 +213,6 @@ def load_test(x=1, n=600, k=10):
 			break	
 
 	# get a sample of unique saves to test
-	# TODO add get_median to sample
 	print('generating save sample')
 	num_saves = 5
 	save_sample = []

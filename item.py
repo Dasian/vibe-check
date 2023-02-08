@@ -1,35 +1,26 @@
 """
-	One conceptual structure that is also a
-	node in a tree, an element that can be ranked.
-	For example: a song, album, artist, genre
+	An element that can be compared and ranked by the user.
 
-	A genre has a list of artists as its children (overlapping)
-	Artist has a list of albums as its children
-	An album has a list of songs as its children
+	For example: song, album, artist, genre
 
-	Node of a tree, also a tree itself.
-	One comparison object
-
-	Two concepts don't need to be of the same type to be compared.
-	I think TPAB is better than Macklemore.
+	Two items don't need to be of the same type to be compared.
+	I think TPAB (album) is better than Macklemore (artist).
 """
 import settings
 import os
 
 class Item():
 	def __init__(self):
-		self.type = ''	# name for concepts at the same depth (album)
-		self.name = ''	# name for this object (To Pimp a Butterfly)
-		# 0 is the root "largest" concept
-		# children are "smaller" concepts
-		self.depth = 0	# what level of the tree are you
+		self.type = ''	# name for a group of items (album)
+		self.name = ''	# name for this item (To Pimp a Butterfly)
+		self.depth = 0
 		self.children = []
 		self.parent = None
 		self.gt = {}	# keeps track the result of self > key, avoids dup cmp
 
 		# for comparing ints in initial benchmarks
 		self.value = 0
-		self.nc = 0 # num comparisons
+		self.nc = 0 	# num unique comparisons
 
 	def get_child(self, target):
 		""" Returns child object with the target name """
@@ -62,7 +53,6 @@ class Item():
 		s = 'Item ' + self.name + ' ' + self.type
 		return s
 
-	# TODO keep track of unique comparisons 
 	def __gt__(self, other):
 		if self.type == 'int':
 			if other.value not in self.gt.keys():
@@ -114,7 +104,6 @@ class Item():
 		if self.type == 'int':
 			return self.value == other.value
 		else:
-			# only equal if name and type? not sure if input needed
 			return self.name == other.name and self.type == other.type
 
 def generate_fs_tree(inp_path):
@@ -148,7 +137,6 @@ def generate_fs_tree(inp_path):
 			max_depth = depth
 		for c in children:
 			i = Item()
-			i.is_gui = True
 			i.name = c
 			i.depth = depth
 			i.parent = parent
