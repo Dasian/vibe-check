@@ -66,9 +66,12 @@ class Item():
 	def __gt__(self, other):
 		if self.type == 'int':
 			if other.value not in self.gt.keys():
+				settings.new_choice = True
 				self.nc += 1
 				self.gt[other.value] = self.value > other.value
 				other.gt[self.value] = other.value > self.value
+			else:
+				settings.new_choice = False
 			return self.gt[other.value]
 		elif other.name in self.gt.keys():
 			settings.new_choice = False

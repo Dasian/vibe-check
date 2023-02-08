@@ -7,6 +7,7 @@
 	personal ranking
 """
 import settings
+import copy
 
 def get_median(arr, left, right, num_cmp=-1):
 	""" Returns the median index given left and right index """ 
@@ -14,6 +15,7 @@ def get_median(arr, left, right, num_cmp=-1):
 	# change the comparator from > to < if sorting least to most
 	global save_state
 	mid = (left + right) // 2
+	save_state.update({'in_median': True})
 
 	# num_cmp prevents entering a comparison
 	# conditional if it has already been checked
@@ -23,7 +25,8 @@ def get_median(arr, left, right, num_cmp=-1):
 		save_state.update({'median_args': median_args})
 	if num_cmp < 0 and settings.new_choice:
 		save_state.update({'arr': arr})
-		settings.save_queue.put(save_state)
+		save = copy.deepcopy(save_state)
+		settings.save_queue.put(save)
 
 	if num_cmp < 1 and arr[right] > arr[left]:
 		arr[right], arr[left] = arr[left], arr[right]
@@ -31,7 +34,8 @@ def get_median(arr, left, right, num_cmp=-1):
 		save_state.update({'median_args': median_args})
 	if num_cmp < 1 and settings.new_choice:
 		save_state.update({'arr': arr})
-		settings.save_queue.put(save_state)
+		save = copy.deepcopy(save_state)
+		settings.save_queue.put(save)
 
 	if num_cmp < 2 and arr[right] > arr[mid]:
 		arr[right], arr[mid] = arr[mid], arr[right]	
@@ -39,7 +43,8 @@ def get_median(arr, left, right, num_cmp=-1):
 		save_state.update({'median_args': median_args})
 	if num_cmp < 2 and settings.new_choice:
 		save_state.update({'arr': arr})
-		settings.save_queue.put(save_state)
+		save = copy.deepcopy(save_state)
+		settings.save_queue.put(save)
 
 	return mid
 
@@ -62,16 +67,21 @@ def partial_quick_sort(arr, k, true_indices=None, i=1, in_partition=False, in_me
 	if true_indices == None:
 		true_indices = [0, len(arr)-1]
 
-	# reload save point from get_median
-	if in_median:
-		# TODO implement median load
-		print('in median huh. i should implement that')
-
 	# reload save point from partition
 	elif in_partition:
-		# TODO fix edge case
 		pivot_index = partition(*partition_args)
-		true_indices.insert(i, pivot_index)
+		left = partition_args[1]
+		right = partition_args[2]
+
+		# saved i is incorrect, update here
+		while true_indices[i] < pivot_index:
+			i += 1
+
+		# edge case magic for insertion
+		if pivot_index not in true_indices:
+			true_indices.insert(i, pivot_index)
+		elif right - left <= 2:
+			true_indices.insert(i, pivot_index+1)
 
 	# check if all sets are <= k
 	# sorts from greatest to smallest
@@ -89,7 +99,11 @@ def partial_quick_sort(arr, k, true_indices=None, i=1, in_partition=False, in_me
 				right -= 1
 
 			# partition elements based on a pivot
-			pivot_index = get_median(arr, left, right)
+			if in_median:
+				in_median = False
+				pivot_index = get_median(*median_args)
+			else:
+				pivot_index = get_median(arr, left, right)
 			save_state.update({'in_median': False})	
 			pivot_index	= partition(arr, left, right, pivot_index)
 			save_state.update({'in_partition': False})
@@ -142,7 +156,11 @@ def partition(arr, left, right, pivot_index, i=None, store=None):
 
 		# only save state if the user makes a new decision
 		if settings.new_choice:
-			settings.save_queue.put(save_state)
+			# deepcopy dict change error here
+			# more likely when n is big
+			# but it still finishes?
+			save = copy.deepcopy(save_state)
+			settings.save_queue.put(save)
 
 	# place pivot in final position
 	arr[right], arr[store] = arr[store], arr[right]

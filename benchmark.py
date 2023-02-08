@@ -5,7 +5,9 @@
 """
 from item import *
 from sort import *
+import settings
 import random
+import threading as th
 
 def generate_sample(x, n, rng):
 	""" Generates a list of x lists. Each list of x has n elements.
@@ -109,15 +111,6 @@ def is_partially_sorted(arr, k, pivots):
 	# every subset length should be <= k
 	for i in range(1, len(pivots)-1):
 		if pivots[i] - pivots[i-1] > k:
-			print('invalid pivot subset')
-			print('k=', k)
-			print('i, i-1', i, i-1)
-			print('piv[i], piv[i-1]', pivots[i], pivots[i-1])
-			print('pivots:')
-			print(pivots)
-			vals = [x.value for x in arr]
-			print('vals:')
-			print(vals)
 			return False
 
 	# all elements in the first subset should be
@@ -126,14 +119,6 @@ def is_partially_sorted(arr, k, pivots):
 		set1 = arr[pivots[i-2]:pivots[i-1]]
 		set2 = arr[pivots[i-1]:pivots[i]]
 		if not min(set1) > max(set2):
-			vals = [x.value for x in arr]
-			print('invalid min/max')
-			print('min i and val', arr.index(min(set1)), min(set1).value)
-			print('max i and val', arr.index(max(set2)), max(set2).value)
-			print('pivots')
-			print(pivots)
-			print('arr:')
-			print(vals)
 			return False
 
 	return True
@@ -191,4 +176,89 @@ def benchmark(x=1000, n=600, k=50):
 
 	# ford-johnson min comparison test
 
-	# TODO test save/load sorts
+def load_test(x=1, n=600, k=10):
+	# it will take a while if n is large
+	# loadable quicksort
+	rng = x*n
+	
+	# generate and pass random array
+	print('generating samples')
+	sample = generate_sample(x, n, rng)
+
+	# create and start sort
+	print('running normal sort')
+	running_threads = []
+	for arr in sample:
+		partial_args = [arr, k]
+		sort_thread = th.Thread(target=partial_quick_sort, args=partial_args, daemon=True)
+		running_threads.append(sort_thread)		
+		running_threads[0].start()
+	
+	# retrieve all save states
+	print('retrieving saves')
+	saves = []
+	median_indices = []
+	while True:
+		# it's not stalling, there are just a lot of saves
+		# being generated
+		curr_save = settings.save_queue.get()
+		saves.append(curr_save)
+
+		if curr_save['in_median']:
+			median_indices.append(len(saves)-1)
+
+		ti = curr_save['true_indices']
+		if ti != None and is_partially_sorted(curr_save['arr'], k, ti):
+			break	
+
+	# get a sample of unique saves to test
+	# TODO add get_median to sample
+	print('generating save sample')
+	num_saves = 5
+	save_sample = []
+	rand_indices = []
+	if len(saves) < num_saves:
+		print('only received', len(saves),'saves')
+		return
+	while len(rand_indices) < num_saves:
+		r = random.randint(0, len(saves)-1)
+		if r not in rand_indices:
+			rand_indices.append(r)
+	rand_indices.append(median_indices[random.randint(0, len(median_indices)-1)])
+	for i in rand_indices:
+		save_sample.append(saves[i])
+
+	
+	# pass sample saves to loadable quicksort
+	print('verifying loadable quicksort')
+	j = 1
+	for save in save_sample:
+		# unpack save
+		arr = save['arr']
+		k = save['k']
+		ti = save['true_indices']
+		i = save['i']
+		in_p = save['in_partition']
+		in_m = save['in_median']
+		qs = save['quick_select']
+		p_args = save['partition_args']
+		m_args = save['median_args']
+		p_args.insert(0, arr)
+		m_args.insert(0, arr)
+		sort_args = [arr, k, ti, i, in_p, in_m, qs, p_args, m_args]
+
+		# verify loaded sort
+		print('testing load', j)
+		ti = partial_quick_sort(*sort_args)
+		vals = [x.value for x in arr]
+		if not is_partially_sorted(arr, k, ti):
+			print()
+			print('saved state not sorted')
+			print('incorrect true indices:')
+			print(ti, '\n')
+			vals = [x.value for x in arr]
+			print('vals:')
+			print(vals)
+			return
+
+	print('verified!!!')
