@@ -11,10 +11,9 @@ import pickle
 import os
 
 def main():
-	# gui needs threads, console doesn't
 	gui()
-	# partial_quick_sort test
 	# benchmark()
+	# load_test()
 
 def algo_worker(sort_func, sort_args):
 	# run algo, communication now in item cmp methods
@@ -33,6 +32,7 @@ def gui():
 	sg.theme('Dark Grey 12')
 	font = 'Courier 64'
 	button_font = 'Courier 32'
+	save_dir = 'saves/'
 	# sg.theme_previewer()
 
 	# home screen
@@ -45,22 +45,22 @@ def gui():
 		[sg.Push(), sg.Button('Quit', font=button_font), sg.Push()]
 	]
 
-	# create new comparison set
-	# TODO finish
+	# create new comparison list
 	# show tree?
-	# currently just continue to go to comparer screen
 	new_layout = [
 		[sg.Push(), sg.Text('New Comparison', font=font), sg.Push()], 
-		[sg.Button('File Import'), sg.Button('Spotify Login'), sg.Button('Plex Login')],
+		[sg.Push(), sg.Button('File Import', font=button_font), sg.Button('Spotify Login', font=button_font), sg.Button('Plex Login', font=button_font), sg.Push()],
 		[sg.Push(), sg.Input(key='-Folder-', font=button_font), sg.FolderBrowse(font=button_font), sg.Push()],
 		[sg.Push(), sg.Button('Continue', font=button_font), sg.Push()],
 		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()]
 	]
 
-	# load a previous comparison
+	# load a save
 	load_layout = [
-		[sg.Push(), sg.Text('Load Comparison', font=font), sg.Push()],
-		[sg.Button('Home', font=button_font)]
+		[sg.Push(), sg.Text('Load', font=font), sg.Push()],
+		[sg.Push(), sg.Input(key='-Load Path-', font=button_font), sg.FileBrowse(font=button_font, initial_folder=save_dir), sg.Push()],
+ 		[sg.Push(), sg.Button('Continue', key='-Load Save-', font=button_font), sg.Push()],
+		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()]
 	]
 
 	# settings
@@ -69,6 +69,7 @@ def gui():
 	# comparer window (after new or load)
 	# use clickable tables to display ranking (cookbook)
 	# progress meter for choosing?
+	# save as and save button types?
 	opt1_layout = [
 		[sg.Push(), sg.Text('Opt 1', font=font, key='-Opt1-'), sg.Push()],
 		[sg.Push(), sg.Button('A', font=button_font), sg.Push()]
@@ -80,7 +81,7 @@ def gui():
 	comparer_layout = [
 		[sg.Push(), sg.Text('Vibe Checker', font=font), sg.Push()],
 		[sg.Column(opt1_layout), sg.Push(), sg.Text('vs', font=font), sg.Push(), sg.Column(opt2_layout)],
-		[sg.Push(), sg.Button('Home', font=button_font), sg.Button('Save', font=button_font), sg.Push()]
+		[sg.Push(), sg.Button('Home', font=button_font), sg.Save(font=button_font), sg.Push()]
 	]
 
 	results_layout = [
@@ -110,7 +111,6 @@ def gui():
 	done_sorting = False
 	hist_len = 1
 	history = [None for x in range(hist_len)]
-	save_path = 'saves/save.pkl'
 	# Event loop runs while gui window is open
 	while True:
 		event, values = window.read()
@@ -182,22 +182,28 @@ def gui():
 				window[curr_layout].update(visible=True)
 				window['-Results Table-'].update(results)
 
-		# TODO save to file and implement history
+		# TODO implement history
+
+		# TODO prevent popup if already set
 		elif event.startswith('Save') and history[0] != None:
-			print('Saving...')
-			print('history[0]:', history[0])
-			# write save to file, prompt for name?
-			f = open(save_path, 'wb')
-			pickle.dump(history[0], f)
-			f.close()
+			fname = sg.popup_get_file('hey there', initial_folder=save_dir, save_as=True)
+			if fname != None:
+				print('Saving...')
+				print('history[0]:', history[0])
+				f = open(fname, 'wb')
+				pickle.dump(history[0], f)
+				f.close()
 
 		# TODO load from file
-		elif event == 'Load':
-			print('Loading...')
-			f = open(save_path, 'rb')
+		elif curr_layout == '-Load-' and event == '-Load Save-':
+			if values['-Load Path-'] == '':
+				continue
+			f = open(values['-Load Path-'], 'rb')
 			save = pickle.load(f)
 			f.close()
+			print('Loading...')
 			print(save)
+
 			# TODO terminate thread if it exists
 			algo_thread = load_save(save)
 			algo_thread.start()
@@ -227,11 +233,13 @@ def load_save(save):
 	in_median = save['in_median']
 	quick_select = save['quick_select']
 	partition_args = save['partition_args']
+	median_args = save['median_args']
+	median_args.insert(0, arr)
 	partition_args.insert(0, arr)
 
 	# load thread
 	sort_algo = partial_quick_sort
-	sort_args = [arr, k, true_indices, i, in_partition, in_median, quick_select, partition_args]
+	sort_args = [arr, k, true_indices, i, in_partition, in_median, quick_select, partition_args, median_args]
 	algo_args = [sort_algo, sort_args]
 	algo_thread = th.Thread(target=algo_worker, args=algo_args, daemon=True)
 	return algo_thread	

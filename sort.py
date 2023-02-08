@@ -16,6 +16,7 @@ def get_median(arr, left, right, num_cmp=-1):
 	global save_state
 	mid = (left + right) // 2
 	save_state.update({'in_median': True})
+	save_state.update({'median_args': [left, right]})
 
 	# num_cmp prevents entering a comparison
 	# conditional if it has already been checked
@@ -53,15 +54,13 @@ def partial_quick_sort(arr, k, true_indices=None, i=1, in_partition=False, in_me
 	"""	
 		Loadable partial_quicksort/quick_select function
 
-		quicksort: k=1
-		quickselect: quickselect boolean
-		partial_qs: normal behavior
-
 		O(n + klogk)
 		Returns a list of indices that are in their final position
 	"""
 	global save_state
 	save_state = {'arr': arr, 'k': k, 'true_indices': true_indices, 'i': i, 'in_partition': in_partition, 'in_median': in_median,'quick_select': quick_select, 'partition_args': partition_args, 'median_args': median_args}
+
+	# TODO implement loadable quick select
 
 	# track the indices that are alread in their final positions
 	if true_indices == None:
