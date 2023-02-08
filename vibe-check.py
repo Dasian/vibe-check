@@ -15,25 +15,25 @@ def main():
 	# benchmark()
 	# load_test()
 
-def algo_worker(sort_func, sort_args):
-	# run algo, communication now in item cmp methods
+def sort_worker(sort_func, sort_args):
+	"""
+		Used to run a sort function in a thread
+	"""
 	sort_func(*sort_args)
-	# finished, send output to gui?
-	# send two none's to signal lmao
+
+	# send two Nones to signal completion
 	settings.gui_read_queue.put(None)
 	settings.gui_read_queue.put(None)
 	vals = [[x.name] for x in sort_args[0]]
-	print(vals)
+
+	# send sorted values to gui
 	settings.gui_read_queue.put(vals)
-	# or send curr state after every comparison
-	return
 
 def gui():
 	sg.theme('Dark Grey 12')
 	font = 'Courier 64'
 	button_font = 'Courier 32'
 	save_dir = 'saves/'
-	# sg.theme_previewer()
 
 	# home screen
 	home_layout = [
@@ -46,6 +46,7 @@ def gui():
 	]
 
 	# create new comparison list
+	# TODO improve list creation
 	# show tree?
 	new_layout = [
 		[sg.Push(), sg.Text('New Comparison', font=font), sg.Push()], 
@@ -63,13 +64,11 @@ def gui():
 		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()]
 	]
 
-	# settings
+	# TODO settings
 	settings_layout = [[sg.Text('Settings', font=font)], [sg.Button('Home', font=button_font)]]
 
-	# comparer window (after new or load)
-	# use clickable tables to display ranking (cookbook)
+	# comparer window
 	# progress meter for choosing?
-	# save as and save button types?
 	opt1_layout = [
 		[sg.Push(), sg.Text('Opt 1', font=font, key='-Opt1-'), sg.Push()],
 		[sg.Push(), sg.Button('A', font=button_font), sg.Push()]
@@ -81,13 +80,15 @@ def gui():
 	comparer_layout = [
 		[sg.Push(), sg.Text('Vibe Checker', font=font), sg.Push()],
 		[sg.Column(opt1_layout), sg.Push(), sg.Text('vs', font=font), sg.Push(), sg.Column(opt2_layout)],
-		[sg.Push(), sg.Button('Home', font=button_font), sg.Save(font=button_font), sg.Push()]
+		[sg.Push(), sg.Button('Home', font=button_font), sg.Save(key='-Save-', font=button_font), sg.Push()]
 	]
 
+	# show comparison results
 	results_layout = [
 		[sg.Push(), sg.Text('Results', font=font), sg.Push()],
+		[sg.Push(), sg.Table([['Ranking']], auto_size_columns=False, key='-Results Table-', font='Courier 16', justification='left', def_col_width=20), sg.Push()],
+		[sg.Push(), sg.Button('Save', key='-Save Result-', font=button_font), sg.Push()],
 		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()],
-		[sg.Push(), sg.Table([['Ranking']], auto_size_columns=True, key='-Results Table-', font='Courier 16', justification='left'), sg.Push()]
 	]
 
 	# switches window layout
@@ -101,16 +102,19 @@ def gui():
 		]
 	]
 
-	window = sg.Window('vibes', master_layout, resizable=True, finalize=True)
-
+	# so many variables!
 	curr_layout = '-Home-'
 	valid_choices = ['A', 'B']
 	sort_func = None
 	root_item = None
-	algo_thread = None
+	sort_thread = None
 	done_sorting = False
+	# TODO create save dir if it doesn't exist
+	# save_dir = 'saves/'
 	hist_len = 1
 	history = [None for x in range(hist_len)]
+	window = sg.Window('vibes', master_layout, resizable=True, finalize=True)
+
 	# Event loop runs while gui window is open
 	while True:
 		event, values = window.read()
@@ -124,6 +128,7 @@ def gui():
 			window[new_layout].update(visible=True)
 			curr_layout = new_layout
 
+		# exit
 		if event == sg.WIN_CLOSED or event == 'Quit':
 			# maybe a save prompt?
 			break
@@ -134,79 +139,17 @@ def gui():
 			window[f'-Home-'].update(visible=True)
 			curr_layout = '-Home-'
 
-		# create new comparison list
-		elif curr_layout == '-New-' and event == 'Continue':
-			# change window layout
-			window[curr_layout].update(visible=False)
-			window[f'-Comparer-'].update(visible=True)
-			curr_layout = '-Comparer-'
-			# fill Item tree
-			root_item = generate_fs_tree(values['Browse'])
-
-			# TEMP BEHAVIOR, run quicksort
-			arr = root_item.get_children(3)
-			sort_algo = partial_quick_sort
-			sort_args = [arr, 1]
-			algo_args = [sort_algo, sort_args]
-			algo_thread = th.Thread(target=algo_worker, args=algo_args, daemon=True)
-			algo_thread.start()	
-			# wait for next options to update window
-			opt1 = settings.gui_read_queue.get()
-			opt2 = settings.gui_read_queue.get()
-			window['-Opt1-'].update(opt1)
-			window['-Opt2-'].update(opt2)
-
-		# TODO get sorts args from user
-
-		# comparison choice
-		elif curr_layout == '-Comparer-' and event in valid_choices and not done_sorting:
-			# send choice to algo thread
-			settings.gui_write_queue.put(event)
-			# wait for next option to be ready
-			opt1 = settings.gui_read_queue.get()
-			opt2 = settings.gui_read_queue.get()
-			if opt1 != None and opt2 != None:
-				# display next options
-				window['-Opt1-'].update(opt1)
-				window['-Opt2-'].update(opt2)
-				# save sort progress
-				history[0] = settings.save_queue.get()
-				print('new save received')
-				print(history[0])
-			else:
-				# sorting is finished
-				done_sorting = True
-				results = settings.gui_read_queue.get()
-				curr_layout = '-Results-'
-				window['-Comparer-'].update(visible=False)
-				window[curr_layout].update(visible=True)
-				window['-Results Table-'].update(results)
-
-		# TODO implement history
-
-		# TODO prevent popup if already set
-		elif event.startswith('Save') and history[0] != None:
-			fname = sg.popup_get_file('hey there', initial_folder=save_dir, save_as=True)
-			if fname != None:
-				print('Saving...')
-				print('history[0]:', history[0])
-				f = open(fname, 'wb')
-				pickle.dump(history[0], f)
-				f.close()
-
-		# TODO load from file
+		# load sort from file
 		elif curr_layout == '-Load-' and event == '-Load Save-':
 			if values['-Load Path-'] == '':
 				continue
 			f = open(values['-Load Path-'], 'rb')
 			save = pickle.load(f)
 			f.close()
-			print('Loading...')
-			print(save)
 
 			# TODO terminate thread if it exists
-			algo_thread = load_save(save)
-			algo_thread.start()
+			sort_thread = load_save(save)
+			sort_thread.start()
 	
 			# wait for next options to update window
 			window[curr_layout].update(visible=False)
@@ -217,12 +160,82 @@ def gui():
 			window['-Opt1-'].update(opt1)
 			window['-Opt2-'].update(opt2)
 
+		# create new comparison list
+		elif curr_layout == '-New-' and event == 'Continue':
+			window[curr_layout].update(visible=False)
+			window[f'-Comparer-'].update(visible=True)
+			curr_layout = '-Comparer-'
+
+			# fill Item tree
+			root_item = generate_fs_tree(values['Browse'])
+
+			# TODO remove this/implement sort choice
+			# TEMP BEHAVIOR, run quicksort
+			arr = root_item.get_children(3)
+			sort_algo = partial_quick_sort
+			sort_args = [arr, 1]
+			thread_args = [sort_algo, sort_args]
+			sort_thread = th.Thread(target=sort_worker, args=thread_args, daemon=True)
+			sort_thread.start()	
+
+			# update window with first comparison
+			opt1 = settings.gui_read_queue.get()
+			opt2 = settings.gui_read_queue.get()
+			window['-Opt1-'].update(opt1)
+			window['-Opt2-'].update(opt2)
+
+		# TODO sort choice
+
+		# comparison choice
+		elif curr_layout == '-Comparer-' and event in valid_choices and not done_sorting:
+			# send choice to sort thread
+			settings.gui_write_queue.put(event)
+
+			# get next comparison
+			opt1 = settings.gui_read_queue.get()
+			opt2 = settings.gui_read_queue.get()
+			if opt1 != None and opt2 != None:
+				window['-Opt1-'].update(opt1)
+				window['-Opt2-'].update(opt2)
+				# save sort progress
+				history[0] = settings.save_queue.get()
+			else:
+				# sorting is finished
+				# display results
+				done_sorting = True
+				results = settings.gui_read_queue.get()
+				curr_layout = '-Results-'
+				window['-Comparer-'].update(visible=False)
+				window[curr_layout].update(visible=True)
+				window['-Results Table-'].update(results)
+
+		# TODO implement sorting history
+
+		# TODO prevent popup if already set
+		# save sorting progress
+		elif event == '-Save-' and history[0] != None and curr_layout == '-Comparer-':
+			fname = sg.popup_get_file('Save current sorting progress', initial_folder=save_dir, save_as=True)
+			if fname != None:
+				f = open(fname, 'wb')
+				pickle.dump(history[0], f)
+				f.close()
+
+		# save results
+		elif event == '-Save Result-' and curr_layout == '-Results-':
+			fname = sg.popup_get_file('Save results to a txt file', initial_folder=save_dir, save_as=True)
+			if fname != None:
+				table = window['-Results Table-'].Values
+				results = [arr[0] + '\n' for arr in table]
+				f = open(fname, 'w')
+				f.writelines(results)
+				f.close()
+				
 	window.close()
 
 def load_save(save):
 	""" 
-		Loads a save from unpickled save file 
-		Returns a thread obj to be started
+		Loads a save from an unpickled save file 
+		Returns a sort thread obj to be started
 	"""
 	# unpack data
 	k = save['k']
@@ -240,9 +253,9 @@ def load_save(save):
 	# load thread
 	sort_algo = partial_quick_sort
 	sort_args = [arr, k, true_indices, i, in_partition, in_median, quick_select, partition_args, median_args]
-	algo_args = [sort_algo, sort_args]
-	algo_thread = th.Thread(target=algo_worker, args=algo_args, daemon=True)
-	return algo_thread	
+	thread_args = [sort_algo, sort_args]
+	sort_thread = th.Thread(target=sort_worker, args=thread_args, daemon=True)
+	return sort_thread	
 
 if __name__ == "__main__":
 	main()
