@@ -176,9 +176,8 @@ def benchmark(x=1000, n=600, k=50):
 
 	# ford-johnson min comparison test
 
-def load_test(x=1, n=600, k=10):
+def load_test(x=1, n=600, k=10, quick_select=False):
 	""" Test loading validity on partial quicksort """
-	# TODO test quickselect
 	# it will take a while if n is large
 	rng = x*n
 	
@@ -191,6 +190,9 @@ def load_test(x=1, n=600, k=10):
 	running_threads = []
 	for arr in sample:
 		partial_args = [arr, k]
+		if quick_select:
+			# set quick_select arg in partial sort
+			partial_args.append(True)
 		sort_thread = th.Thread(target=partial_quick_sort, args=partial_args, daemon=True)
 		running_threads.append(sort_thread)		
 		running_threads[0].start()
@@ -209,7 +211,10 @@ def load_test(x=1, n=600, k=10):
 			median_indices.append(len(saves)-1)
 
 		ti = curr_save['true_indices']
-		if ti != None and is_partially_sorted(curr_save['arr'], k, ti):
+		# this doesn't work for quick_select smh
+		if quick_select and ti!= None and k-1 in ti:
+			break
+		elif ti != None and is_partially_sorted(curr_save['arr'], k, ti):
 			break	
 
 	# get a sample of unique saves to test
@@ -245,16 +250,26 @@ def load_test(x=1, n=600, k=10):
 		m_args = save['median_args']
 		p_args.insert(0, arr)
 		m_args.insert(0, arr)
-		sort_args = [arr, k, ti, i, in_p, in_m, qs, p_args, m_args]
+		sort_args = [arr, k, qs, ti, i, in_p, in_m, p_args, m_args]
 
 		# verify loaded sort
 		print('testing load', j)
 		ti = partial_quick_sort(*sort_args)
 		vals = [x.value for x in arr]
-		if not is_partially_sorted(arr, k, ti):
+		j += 1
+		if not quick_select and not is_partially_sorted(arr, k, ti):
 			print()
 			print('saved state not sorted')
 			print('incorrect true indices:')
+			print(ti, '\n')
+			vals = [x.value for x in arr]
+			print('vals:')
+			print(vals)
+			return
+		elif quick_select and k-1 not in ti and not is_partially_sorted(arr, k, ti):
+			print()
+			print('k=',k)
+			print('incorrect quick_select')
 			print(ti, '\n')
 			vals = [x.value for x in arr]
 			print('vals:')

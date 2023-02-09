@@ -50,7 +50,7 @@ def get_median(arr, left, right, num_cmp=-1):
 	return mid
 
 # overload this function with all quick_* variations?
-def partial_quick_sort(arr, k, true_indices=None, i=1, in_partition=False, in_median=False, quick_select=False, partition_args=[], median_args=[]):
+def partial_quick_sort(arr, k, quick_select=False, true_indices=None, i=1, in_partition=False, in_median=False,  partition_args=[], median_args=[]):
 	"""	
 		Loadable partial_quicksort/quick_select function
 
@@ -60,7 +60,7 @@ def partial_quick_sort(arr, k, true_indices=None, i=1, in_partition=False, in_me
 	global save_state
 	save_state = {'arr': arr, 'k': k, 'true_indices': true_indices, 'i': i, 'in_partition': in_partition, 'in_median': in_median,'quick_select': quick_select, 'partition_args': partition_args, 'median_args': median_args}
 
-	# TODO implement loadable quick select
+	# TODO maybe just pass the dict and unpack here??
 
 	# track the indices that are alread in their final positions
 	if true_indices == None:
@@ -82,44 +82,70 @@ def partial_quick_sort(arr, k, true_indices=None, i=1, in_partition=False, in_me
 		elif right - left <= 2:
 			true_indices.insert(i, pivot_index+1)
 
+	# TODO quick select
+	# get k elements instead of kth index
+	if quick_select:
+		k -= 1
+	while quick_select and i < len(true_indices):
+		left = true_indices[i-1]
+		right = true_indices[i]
+		if left == k or right == k:
+			save_state.update({'arr': arr})
+			save = copy.deepcopy(save_state)
+			settings.save_queue.put(save)
+			return true_indices
+		if right < k:
+			i += 1
+		elif left > k:
+			i -= 1
+		else:
+			custom_partition(arr, left, right, true_indices, i, in_median, median_args)
+			if in_median:
+				in_median = False
+
 	# check if all sets are <= k
 	# sorts from greatest to smallest
-	while i < len(true_indices) and len(true_indices) != len(arr):
+	while not quick_select and i < len(true_indices) and len(true_indices) != len(arr):
 		left = true_indices[i-1]
 		right = true_indices[i]
 		if right - left > k:
-			# don't compare indices that are already in place
-			if left == 0 and right != len(arr)-1:
-				right -= 1
-			elif right == len(arr)-1 and left != 0:
-				left += 1
-			elif left != 0 and right != len(arr)-1:
-				left += 1
-				right -= 1
-
-			# partition elements based on a pivot
+			custom_partition(arr, left, right, true_indices, i, in_median, median_args)
 			if in_median:
 				in_median = False
-				pivot_index = get_median(*median_args)
-			else:
-				pivot_index = get_median(arr, left, right)
-			save_state.update({'in_median': False})	
-			pivot_index	= partition(arr, left, right, pivot_index)
-			save_state.update({'in_partition': False})
-
-			# fixes some edge cases and prevents inf loops
-			# what edge cases you may ask
-			# I also ask
-			if pivot_index not in true_indices:
-				true_indices.insert(i, pivot_index)
-			elif right - left <= 2:
-				true_indices.insert(i, pivot_index+1)
-
-			# update sorting progress
-			save_state.update({'true_indices': true_indices, 'i': i, 'arr': arr})
 		else:
 			i += 1
 	return true_indices
+
+def custom_partition(arr, left, right, true_indices, i, in_median, median_args):
+	""" Helper partitioner for partial_quicksort """
+	# don't compare indices that are already in place
+	if left == 0 and right != len(arr)-1:
+		right -= 1
+	elif right == len(arr)-1 and left != 0:
+		left += 1
+	elif left != 0 and right != len(arr)-1:
+		left += 1
+		right -= 1
+
+	# partition subset around pivot
+	if in_median:
+		pivot_index = get_median(*median_args)
+	else:
+		pivot_index = get_median(arr, left, right)
+	save_state.update({'in_median': False})	
+	pivot_index = partition(arr, left, right, pivot_index)
+	save_state.update({'in_partition': False})	
+
+	# fixes some edge cases and prevents inf loops
+	# what edge cases you may ask
+	# I also ask
+	if pivot_index not in true_indices:
+		true_indices.insert(i, pivot_index)
+	elif right - left <= 2:
+		true_indices.insert(i, pivot_index+1)
+
+	# update sorting progress
+	save_state.update({'true_indices': true_indices, 'i': i, 'arr': arr})
 
 def partition(arr, left, right, pivot_index, i=None, store=None):
 	""" Partition helper for quick_* funcs

@@ -12,9 +12,10 @@ import pickle
 import os
 
 def main():
-	gui()
+	# gui()
 	# benchmark()
-	# load_test()
+	# hangs on in_median when left == right == k
+	load_test(quick_select=True, n=50)
 
 def sort_worker(sort_func, sort_args):
 	"""
@@ -211,7 +212,7 @@ def load_save(save):
 
 	# load thread
 	sort_algo = partial_quick_sort
-	sort_args = [arr, k, true_indices, i, in_partition, in_median, quick_select, partition_args, median_args]
+	sort_args = [arr, k, quick_select, true_indices, i, in_partition, in_median,  partition_args, median_args]
 	thread_args = [sort_algo, sort_args]
 	sort_thread = th.Thread(target=sort_worker, args=thread_args, daemon=True)
 	return sort_thread	
