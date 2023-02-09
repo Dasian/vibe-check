@@ -56,6 +56,14 @@ def gui():
 		[sg.Push(), sg.Button('Home', font=button_font), sg.Push()]
 	]
 
+	# sort choice layout
+	sort_layout = [
+		[sg.Push(), sg.Text('Sort Choice', font=font), sg.Push()],
+		[sg.Push(), sg.Radio('Top x', group_id='sort_group', default=True, key='-Quick Select-', font=button_font), sg.Radio('Partial Sort', group_id='sort_group', key='-Partial Sort-', font=button_font), sg.Radio('Full Sort', group_id='sort_group', key='-Quick Sort-', font=button_font), sg.Push()],
+		[sg.Push(), sg.Text('X:', font=button_font), sg.Input(key='-k-', font=button_font, size=(5,1)), sg.Push()],
+		[sg.Push(), sg.Button('Home',font=button_font), sg.Button('Help', key='-Sort Help-',font=button_font), sg.Button('Continue',font=button_font), sg.Push()]
+	]
+
 	# load a save
 	load_layout = [
 		[sg.Push(), sg.Text('Load', font=font), sg.Push()],
@@ -95,6 +103,7 @@ def gui():
 	master_layout = [
 		[sg.Column(home_layout, key='-Home-', visible=True), 
 		sg.Column(new_layout, visible=False, key='-New-'), 
+		sg.Column(sort_layout, visible=False, key='-Sort-'),
 		sg.Column(load_layout, visible=False, key='-Load-'), 
 		sg.Column(settings_layout, visible=False, key='-Settings-'),
 		sg.Column(comparer_layout, visible=False, key='-Comparer-'),
@@ -161,30 +170,57 @@ def gui():
 			window['-Opt2-'].update(opt2)
 
 		# create new comparison list
-		elif curr_layout == '-New-' and event == 'Continue':
+		elif curr_layout == '-New-' and event.startswith('Continue'):
+			# change window to sort choice
 			window[curr_layout].update(visible=False)
-			window[f'-Comparer-'].update(visible=True)
-			curr_layout = '-Comparer-'
+			curr_layout = '-Sort-'
+			window[curr_layout].update(visible=True)
 
+			# TODO better list creation
 			# fill Item tree
 			root_item = generate_fs_tree(values['Browse'])
 
-			# TODO remove this/implement sort choice
-			# TEMP BEHAVIOR, run quicksort
-			arr = root_item.get_children(3)
+		# sort help
+		elif curr_layout == '-Sort-' and event == '-Sort Help-':
+			# display sort_help_layout as a popup
+			help_text = 'Top x will find your favorite x elements (unordered)\nPartial Sort will sort the list in groups of x\nFull Sort will completely sort your list'
+			sg.popup_ok(help_text)
+
+		# TODO sort choice
+		elif curr_layout == '-Sort-' and event.startswith('Continue'):
+			# TODO get better way to generate list
+			# get sort choice
 			sort_algo = partial_quick_sort
-			sort_args = [arr, 1]
+			sort_args = []
+			arr = root_item.get_children(3)
+			try:
+				k = int(values['-k-'])
+			except:
+				# maybe a popup here
+				# doesn't let you run full sort without setting x
+				continue
+			if values['-Quick Select-']:
+				# TODO not implemented in a savable way
+				sort_args = [arr]
+			elif values['-Partial Sort-']:
+				sort_args = [arr, k]
+			elif values['-Quick Sort-']:
+				sort_args = [arr, 1]
+
+			# run sort in a new thread
 			thread_args = [sort_algo, sort_args]
 			sort_thread = th.Thread(target=sort_worker, args=thread_args, daemon=True)
 			sort_thread.start()	
 
+			# change to comparison window
+			window[curr_layout].update(visible=False)
+			window[f'-Comparer-'].update(visible=True)
+			curr_layout = '-Comparer-'
 			# update window with first comparison
 			opt1 = settings.gui_read_queue.get()
 			opt2 = settings.gui_read_queue.get()
 			window['-Opt1-'].update(opt1)
 			window['-Opt2-'].update(opt2)
-
-		# TODO sort choice
 
 		# comparison choice
 		elif curr_layout == '-Comparer-' and event in valid_choices and not done_sorting:
