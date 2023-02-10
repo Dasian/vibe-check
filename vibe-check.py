@@ -3,8 +3,8 @@
 """
 from sort import *
 from item import *
-from benchmark import *
 from layouts import *
+from benchmark import *
 import settings
 import PySimpleGUI as sg
 import threading as th
@@ -12,25 +12,6 @@ import pickle
 import os
 
 def main():
-	gui()
-	# benchmark()
-	# load_test(quick_select=True, n=50)
-
-def sort_worker(sort_func, sort_args):
-	"""
-		Used to run a sort function in a thread
-	"""
-	sort_func(*sort_args)
-
-	# send two Nones to signal completion
-	settings.gui_read_queue.put(None)
-	settings.gui_read_queue.put(None)
-	vals = [[x.name] for x in sort_args[0]]
-
-	# send sorted values to gui
-	settings.gui_read_queue.put(vals)
-
-def gui():
 
 	# so many variables!
 	curr_layout = '-Home-'
@@ -224,6 +205,20 @@ def load_save(save):
 	thread_args = [sort_algo, sort_args]
 	sort_thread = th.Thread(target=sort_worker, args=thread_args, daemon=True)
 	return sort_thread	
+
+def sort_worker(sort_func, sort_args):
+	"""
+		Used to run a sort function in a thread
+	"""
+	sort_func(*sort_args)
+
+	# send two Nones to signal completion
+	settings.gui_read_queue.put(None)
+	settings.gui_read_queue.put(None)
+	vals = [[x.name] for x in sort_args[0]]
+
+	# send sorted values to gui
+	settings.gui_read_queue.put(vals)
 
 if __name__ == "__main__":
 	main()

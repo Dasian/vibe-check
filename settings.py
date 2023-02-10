@@ -4,6 +4,7 @@
 from queue import Queue
 
 is_gui = True
+is_benchmark = False
 
 # interthread communication
 gui_read_queue = Queue()

@@ -24,7 +24,7 @@ def get_median(arr, left, right, num_cmp=-1):
 		arr[mid], arr[left] = arr[left], arr[mid]
 		median_args = [left, right, 0]
 		save_state.update({'median_args': median_args})
-	if num_cmp < 0 and settings.new_choice:
+	if num_cmp < 0 and settings.new_choice and not settings.is_benchmark:
 		save_state.update({'arr': arr})
 		save = copy.deepcopy(save_state)
 		settings.save_queue.put(save)
@@ -33,7 +33,7 @@ def get_median(arr, left, right, num_cmp=-1):
 		arr[right], arr[left] = arr[left], arr[right]
 		median_args = [left, right, 1]
 		save_state.update({'median_args': median_args})
-	if num_cmp < 1 and settings.new_choice:
+	if num_cmp < 1 and settings.new_choice and not settings.is_benchmark:
 		save_state.update({'arr': arr})
 		save = copy.deepcopy(save_state)
 		settings.save_queue.put(save)
@@ -42,14 +42,13 @@ def get_median(arr, left, right, num_cmp=-1):
 		arr[right], arr[mid] = arr[mid], arr[right]	
 		median_args = [left, right, 2]
 		save_state.update({'median_args': median_args})
-	if num_cmp < 2 and settings.new_choice:
+	if num_cmp < 2 and settings.new_choice and not settings.is_benchmark:
 		save_state.update({'arr': arr})
 		save = copy.deepcopy(save_state)
 		settings.save_queue.put(save)
 
 	return mid
 
-# overload this function with all quick_* variations?
 def partial_quick_sort(arr, k, quick_select=False, true_indices=None, i=1, in_partition=False, in_median=False,  partition_args=[], median_args=[]):
 	"""	
 		Loadable partial_quicksort/quick_select function
@@ -82,7 +81,7 @@ def partial_quick_sort(arr, k, quick_select=False, true_indices=None, i=1, in_pa
 		elif right - left <= 2:
 			true_indices.insert(i, pivot_index+1)
 
-	# TODO quick select
+	# quick_select
 	# get k elements instead of kth index
 	if quick_select:
 		k -= 1
@@ -103,6 +102,7 @@ def partial_quick_sort(arr, k, quick_select=False, true_indices=None, i=1, in_pa
 			if in_median:
 				in_median = False
 
+	# partial_quicksort
 	# check if all sets are <= k
 	# sorts from greatest to smallest
 	while not quick_select and i < len(true_indices) and len(true_indices) != len(arr):
@@ -180,7 +180,7 @@ def partition(arr, left, right, pivot_index, i=None, store=None):
 			i += 1
 
 		# only save state if the user makes a new decision
-		if settings.new_choice:
+		if settings.new_choice and not settings.is_benchmark:
 			# deepcopy dict change error here
 			# more likely when n is big
 			# but it still finishes?
@@ -195,6 +195,8 @@ def quick_sort(arr, left, right):
 	""" Have the user compare every concept to a pivot, divide set,
 		repeat for all sets until completely ordered.
 	"""
+	global save_state
+	save_state = {}
 	# might want to restrict to small n or at least have some type
 	# of estimated time function to warn the user
 	if left < right:
@@ -208,6 +210,8 @@ def quick_select(arr, left, right, k):
 		(currently set to the largest elements')
 		Basically O(n)
 	"""
+	global save_state
+	save_state = {}
 	if left == right:	
 		return arr[0:k]
 	pivot_index = get_median(arr, left, right) 
@@ -225,6 +229,8 @@ def partial_insertion_sort(arr, k):
 		Essentially insertion sort but inserts a new
 		element to the sorted portion using binary search
 	"""
+	global save_state
+	save_state = {}
 	# TODO replace top with an in place implementation?
 	i = 0
 	top = []	# top k elements, sorted from best to worst

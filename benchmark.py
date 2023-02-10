@@ -277,3 +277,11 @@ def load_test(x=1, n=600, k=10, quick_select=False):
 			return
 
 	print('verified!!!')
+
+def main():
+	settings.benchmark = True
+	benchmark()
+	# load_test(quick_select=True, n=50)
+
+if __name__ == '__main__':
+	main()
