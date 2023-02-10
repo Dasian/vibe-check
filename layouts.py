@@ -21,12 +21,14 @@ home_layout = [
 # create new comparison list
 # TODO improve list creation
 # show tree?
+list_preview = [
+	[sg.Push(), sg.Table([['List']], auto_size_columns=False, def_col_width=20, font='Courier 16', key='-List Preview-', justification='left'),sg.Push()],
+]
 new_layout = [
 	[sg.Push(), sg.Text('New Comparison', font=font), sg.Push()], 
-	[sg.Push(), sg.Button('File Import', font=button_font), sg.Button('Spotify Login', font=button_font), sg.Button('Plex Login', font=button_font), sg.Push()],
-	[sg.Push(), sg.Input(key='-Folder-', font=button_font), sg.FolderBrowse(font=button_font), sg.Push()],
-	[sg.Push(), sg.Button('Continue', font=button_font), sg.Push()],
-	[sg.Push(), sg.Button('Home', font=button_font), sg.Push()]
+	[sg.Push(), sg.Button('Folder Import', font=button_font, key='-Folder Import-'), sg.Button('Spotify Login', font=button_font), sg.Push()],
+	[sg.Push(), sg.Column(list_preview), sg.Push()],
+	[sg.Button('Home', font=button_font), sg.Push(), sg.Button('Reset', font=button_font, key='-List Reset-'), sg.Push(), sg.Button('Continue', font=button_font)]
 ]
 
 # sort choice layout
@@ -34,7 +36,7 @@ sort_layout = [
 	[sg.Push(), sg.Text('Sort Choice', font=font), sg.Push()],
 	[sg.Push(), sg.Radio('Top x', group_id='sort_group', default=True, key='-Quick Select-', font=button_font), sg.Radio('Partial Sort', group_id='sort_group', key='-Partial Sort-', font=button_font), sg.Radio('Full Sort', group_id='sort_group', key='-Quick Sort-', font=button_font), sg.Push()],
 	[sg.Push(), sg.Text('X:', font=button_font), sg.Input(key='-k-', font=button_font, size=(5,1)), sg.Push()],
-	[sg.Push(), sg.Button('Home',font=button_font), sg.Button('Help', key='-Sort Help-',font=button_font), sg.Button('Continue',font=button_font), sg.Push()]
+	[sg.Button('Home',font=button_font), sg.Push(), sg.Button('Help', key='-Sort Help-',font=button_font), sg.Push(), sg.Button('Continue',font=button_font)]
 ]
 
 # load a save

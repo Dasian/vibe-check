@@ -12,10 +12,9 @@ import pickle
 import os
 
 def main():
-	# gui()
+	gui()
 	# benchmark()
-	# hangs on in_median when left == right == k
-	load_test(quick_select=True, n=50)
+	# load_test(quick_select=True, n=50)
 
 def sort_worker(sort_func, sort_args):
 	"""
@@ -92,17 +91,26 @@ def gui():
 			window['-Opt1-'].update(opt1)
 			window['-Opt2-'].update(opt2)
 
-		# create new comparison list
+		# add values to comparison list
+		elif curr_layout == '-New-' and event == '-Folder Import-':
+			folder = sg.popup_get_folder('Add the contents of a folder to the comparison list')
+			root_item = generate_fs_tree(folder)
+			children = root_item.get_children(0)
+			arr += children
+			arr_names = [x.name for x in arr]
+			window['-List Preview-'].update(arr_names)
+
+		# reset comparison list
+		elif curr_layout == '-New-' and event == '-List Reset-':
+			arr = []
+			arr_names = []
+			window['-List Preview-'].update(arr)
+
+		# comparison list chosen, change window to sort choice
 		elif curr_layout == '-New-' and event.startswith('Continue'):
-			# change window to sort choice
 			window[curr_layout].update(visible=False)
 			curr_layout = '-Sort-'
 			window[curr_layout].update(visible=True)
-
-			# TODO better list creation
-			# fill Item tree
-			root_item = generate_fs_tree(values['Browse'])
-			arr = root_item.get_children(3)
 
 		# sort help
 		elif curr_layout == '-Sort-' and event == '-Sort Help-':
